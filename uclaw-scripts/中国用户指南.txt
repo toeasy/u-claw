@@ -20,9 +20,10 @@ OpenClaw 支持大量国产模型，以下是推荐:
    - 注册: https://platform.moonshot.cn/
    - 免费额度: 有
 
-3. 通义千问 Qwen（阿里）—— 免费额度最大
+3. 通义千问 Qwen（阿里）—— 免费额度最大 ★ 新手推荐
    - 注册: https://dashscope.console.aliyun.com/
-   - 免费额度: 非常多
+   - 免费额度: 新用户 1000万 tokens，每日 2000 次调用
+   - 国内直连，无需翻墙
 
 4. 智谱 GLM（清华系）—— 学术场景强
    - 注册: https://open.bigmodel.cn/
@@ -40,7 +41,18 @@ OpenClaw 支持大量国产模型，以下是推荐:
 8. 小米 Mimo
    - 注册: https://dev.mi.com/mimo
 
+9. 阶跃星辰 StepFun —— Step 3.5 Flash
+   - 注册: https://platform.stepfun.com/
+   - 免费: OpenRouter 免费使用 Step 3.5 Flash
+   - 首月 Deep Research API 免费
+
 在启动菜单选 [5] 即可一键配置
+
+💡 省钱提示（2026年3月）:
+   - 零成本起步: 先用通义千问 Qwen（1000万免费 tokens）
+   - 性价比之王: DeepSeek（约 ¥1/百万 tokens，编程最强）
+   - 免费试用: 阶跃星辰 Step 3.5 Flash（通过 OpenRouter 免费）
+   - 以上优惠信息可能变化，请以各平台官网为准
 
 
 第二步：选择聊天平台
