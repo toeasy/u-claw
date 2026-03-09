@@ -451,6 +451,8 @@ do_doctor() {
     echo ""
     echo -e "  ${CYAN}${BOLD}━━━ 诊断修复 ━━━${NC}"
     echo ""
+    echo -e "  ${GREEN}💡 提示: 选 [17] 可打开网页控制台，在浏览器中查看完整状态${NC}"
+    echo ""
     ensure_deps
     cd "$OPENCLAW_DIR"
     "$NODE_BIN" openclaw.mjs doctor --repair 2>&1 || \
