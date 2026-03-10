@@ -31,8 +31,11 @@ if [ "$ARCH" = "arm64" ]; then
     NODE_DIR="$APP_DIR/runtime/node-mac-arm64"
     echo -e "  ${GREEN}Apple Silicon (M series)${NC}"
 else
-    NODE_DIR="$APP_DIR/runtime/node-mac-x64"
-    echo -e "  ${GREEN}Intel Mac${NC}"
+    echo -e "  ${RED}This version only supports Apple Silicon (M1-M4).${NC}"
+    echo -e "  ${RED}Intel Mac is not supported in this release.${NC}"
+    echo ""
+    read -p "  Press Enter to exit..."
+    exit 1
 fi
 
 NODE_BIN="$NODE_DIR/bin/node"
