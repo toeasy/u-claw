@@ -58,26 +58,30 @@ if not exist "%OPENCLAW_DIR%\dist" (
     echo.
 )
 
-echo   正在启动 OpenClaw...
-echo.
 cd /d "%OPENCLAW_DIR%"
 
+REM 首次运行：自动写入最小配置（跳过 onboard）
 if not exist "%PORTABLE_CONFIG_PATH%" (
-    echo   检测到你还没有完成首次配置。
-    echo   首次配置会直接保存到 U 盘里，换电脑插上后还能继续用。
+    echo   首次运行，正在初始化配置...
+    if not exist "%PORTABLE_STATE_DIR%" mkdir "%PORTABLE_STATE_DIR%"
+    echo {"gateway":{"mode":"local","auth":{"token":"uclaw"}}} > "%PORTABLE_CONFIG_PATH%"
+    echo   配置已初始化
     echo.
-    set /p DO_ONBOARD="  现在开始首次配置? (y/n) "
-    if /i "%DO_ONBOARD%"=="y" (
-        "%NODE_BIN%" openclaw.mjs onboard
-        echo.
-        echo   首次配置完成，已保存到 U 盘。
-    )
-) else (
-    echo   正在启动网关服务...
-    echo   此窗口不要关闭，关闭后服务会停止。
-    echo.
-    "%NODE_BIN%" openclaw.mjs gateway run --allow-unconfigured --force
 )
+
+echo   正在启动 OpenClaw...
+echo   此窗口不要关闭，关闭后服务会停止。
+echo.
+echo   ────────────────────────────────────
+echo   启动后浏览器会自动打开控制台
+echo   首次使用请在控制台中配置：
+echo     1. 设置 AI 模型（DeepSeek / Kimi / 通义千问）
+echo     2. 接入聊天平台（QQ / 飞书 / 钉钉）
+echo   ────────────────────────────────────
+echo.
+
+start "" http://127.0.0.1:18789/#token=uclaw
+"%NODE_BIN%" openclaw.mjs gateway run --allow-unconfigured --force
 
 echo.
 echo   OpenClaw 已退出。拔掉 U 盘后，本次便携运行就会结束。

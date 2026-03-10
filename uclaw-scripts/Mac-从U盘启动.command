@@ -112,47 +112,52 @@ if [ ! -d "$OPENCLAW_DIR/dist" ]; then
     echo ""
 fi
 
-# 启动 OpenClaw
+# 首次运行：自动写入最小配置（跳过 onboard）
+if [ ! -f "$PORTABLE_CONFIG_PATH" ]; then
+    echo -e "  ${YELLOW}首次运行，正在初始化配置...${NC}"
+    mkdir -p "$(dirname "$PORTABLE_CONFIG_PATH")"
+    cat > "$PORTABLE_CONFIG_PATH" << 'CFGEOF'
+{
+  "gateway": {
+    "mode": "local",
+    "auth": { "token": "uclaw" }
+  }
+}
+CFGEOF
+    echo -e "  ${GREEN}配置已初始化${NC}"
+    echo ""
+fi
+
+# 启动网关
 echo -e "  ${CYAN}正在启动 OpenClaw...${NC}"
+echo "  此窗口不要关闭，关闭后服务会停止。"
 echo ""
 cd "$OPENCLAW_DIR"
-if [ ! -f "$PORTABLE_CONFIG_PATH" ]; then
-    echo -e "  ${YELLOW}检测到你还没有完成首次配置。${NC}"
-    echo "  首次配置会直接保存到 U 盘里，换电脑插上后还能继续用。"
-    echo ""
-    read -p "  现在开始首次配置? (y/n) " -n 1 -r
-    echo ""
-    echo ""
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        "$NODE_BIN" openclaw.mjs onboard
+"$NODE_BIN" openclaw.mjs gateway run --allow-unconfigured --force &
+GW_PID=$!
+
+# 等网关启动，最多等 15 秒
+for i in $(seq 1 30); do
+    sleep 0.5
+    if curl -s -o /dev/null http://127.0.0.1:18789/ 2>/dev/null; then
+        TOKEN=$(python3 -c "import json; d=json.load(open('$PORTABLE_CONFIG_PATH')); print(d.get('gateway',{}).get('auth',{}).get('token',''))" 2>/dev/null)
+        URL="http://127.0.0.1:18789/#token=${TOKEN}"
         echo ""
-        echo -e "  ${GREEN}首次配置完成，已保存到 U 盘。${NC}"
-        echo "  下次插到别的电脑，也会继续使用这套配置。"
-    else
-        echo "  已跳过首次配置。"
+        echo -e "  ${GREEN}✅ 启动成功！${NC}"
+        echo ""
+        echo -e "  ${CYAN}控制台地址: ${URL}${NC}"
+        echo ""
+        echo -e "  ${YELLOW}▸ 首次使用请在控制台中配置：${NC}"
+        echo "    1. 设置 AI 模型（DeepSeek / Kimi / 通义千问 等）"
+        echo "    2. 接入聊天平台（QQ / 飞书 / 钉钉 等）"
+        echo ""
+        open "$URL" 2>/dev/null
+        break
     fi
-else
-    echo -e "  ${GREEN}正在启动网关服务...${NC}"
-    echo "  此窗口不要关闭，关闭后服务会停止。"
-    echo ""
-    # 后台启动网关，等它就绪后自动打开浏览器
-    "$NODE_BIN" openclaw.mjs gateway run --allow-unconfigured --force &
-    GW_PID=$!
-    # 等网关启动，最多等 15 秒
-    for i in $(seq 1 30); do
-        sleep 0.5
-        if curl -s -o /dev/null http://127.0.0.1:18789/ 2>/dev/null; then
-            TOKEN=$(python3 -c "import json; d=json.load(open('$PORTABLE_CONFIG_PATH')); print(d.get('gateway',{}).get('auth',{}).get('token',''))" 2>/dev/null)
-            URL="http://127.0.0.1:18789/#token=${TOKEN}"
-            echo ""
-            echo -e "  ${GREEN}控制台地址: ${URL}${NC}"
-            open "$URL" 2>/dev/null
-            break
-        fi
-    done
-    # 前台等待网关进程
-    wait $GW_PID
-fi
+done
+
+# 前台等待网关进程
+wait $GW_PID
 
 echo ""
 echo -e "  ${YELLOW}OpenClaw 已退出。拔掉 U 盘后，本次便携运行就会结束。${NC}"
