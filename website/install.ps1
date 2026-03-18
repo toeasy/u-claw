@@ -80,7 +80,7 @@ Write-Host "  [1/7] 安装 Node.js $NODE_VERSION ..." -ForegroundColor White
 
 $NODE_INSTALL_DIR = "$RUNTIME_DIR\node-$PLATFORM"
 $INSTALL_NODE = ""
-$INSTALL_NPM = ""
+$NPM_CLI = ""
 $USE_SYSTEM_NODE = $false
 
 # 检查系统 Node.js
@@ -91,7 +91,15 @@ if ($sysNode) {
     if ($major -ge 20) {
         Write-Green "  ✓ 系统已有 Node.js $sysVer，复用"
         $INSTALL_NODE = "node"
-        $INSTALL_NPM = "npm"
+        # 通过 npm.cmd 的位置找到 npm-cli.js
+        $npmCmd = (Get-Command npm -ErrorAction SilentlyContinue).Source
+        $npmRoot = Split-Path (Split-Path $npmCmd)
+        $NPM_CLI = "$npmRoot\node_modules\npm\bin\npm-cli.js"
+        if (-not (Test-Path $NPM_CLI)) {
+            # fallback: 直接用 npm prefix 找
+            $npmPrefix = & node -e "console.log(process.execPath.replace(/[\\\/]node\.exe$/i,''))" 2>$null
+            $NPM_CLI = "$npmPrefix\node_modules\npm\bin\npm-cli.js"
+        }
         $USE_SYSTEM_NODE = $true
     }
 }
@@ -100,7 +108,7 @@ if (-not $USE_SYSTEM_NODE) {
     if (Test-Path "$NODE_INSTALL_DIR\node.exe") {
         Write-Green "  ✓ Node.js 已存在，跳过下载"
         $INSTALL_NODE = "$NODE_INSTALL_DIR\node.exe"
-        $INSTALL_NPM = "$NODE_INSTALL_DIR\npm.cmd"
+        $NPM_CLI = "$NODE_INSTALL_DIR\node_modules\npm\bin\npm-cli.js"
     } else {
         Write-Cyan "  ↓ 从国内镜像下载 Node.js $NODE_VERSION ($PLATFORM)..."
         $zipName = "node-$NODE_VERSION-$PLATFORM.zip"
@@ -139,14 +147,14 @@ if (-not $USE_SYSTEM_NODE) {
         if (Test-Path "$NODE_INSTALL_DIR\node.exe") {
             Write-Green "  ✓ Node.js 安装完成"
             $INSTALL_NODE = "$NODE_INSTALL_DIR\node.exe"
-            $INSTALL_NPM = "$NODE_INSTALL_DIR\npm.cmd"
+            $NPM_CLI = "$NODE_INSTALL_DIR\node_modules\npm\bin\npm-cli.js"
         } else {
             Write-Red "  ✗ Node.js 下载失败"
             exit 1
         }
     }
 
-    # 把下载的 Node 加到 PATH，让 npm.cmd 能找到 node.exe
+    # npm-cli.js 内部可能需要通过 PATH 找到 node.exe
     $env:PATH = "$NODE_INSTALL_DIR;$env:PATH"
 }
 
@@ -161,7 +169,7 @@ if (Test-Path "$CORE_DIR\node_modules\openclaw") {
     Write-Green "  ✓ OpenClaw 已安装，跳过"
 } else {
     if (-not (Test-Path "$CORE_DIR\package.json")) {
-        @'
+        $pkgJson = @'
 {
   "name": "u-claw-core",
   "version": "1.0.0",
@@ -170,18 +178,27 @@ if (Test-Path "$CORE_DIR\node_modules\openclaw") {
     "openclaw": "latest"
   }
 }
-'@ | Out-File -Encoding utf8 "$CORE_DIR\package.json"
+'@
+        [IO.File]::WriteAllText("$CORE_DIR\package.json", $pkgJson, (New-Object System.Text.UTF8Encoding $false))
     }
 
     Write-Cyan "  ↓ 从国内镜像安装..."
-    Push-Location $CORE_DIR
-    & $INSTALL_NPM install --registry=$MIRROR 2>&1 | Select-Object -Last 5
-    if ($LASTEXITCODE -ne 0) {
-        Write-Red "  ✗ OpenClaw 安装失败，请检查网络"
-        Pop-Location
+    Write-Host "    node: $INSTALL_NODE" -ForegroundColor DarkGray
+    Write-Host "    npm-cli: $NPM_CLI" -ForegroundColor DarkGray
+    Write-Host "    prefix: $CORE_DIR" -ForegroundColor DarkGray
+    if (-not (Test-Path $NPM_CLI)) {
+        Write-Red "  ✗ npm-cli.js 不存在: $NPM_CLI"
         exit 1
     }
-    Pop-Location
+    if (-not (Test-Path "$CORE_DIR\package.json")) {
+        Write-Red "  ✗ package.json 不存在: $CORE_DIR\package.json"
+        exit 1
+    }
+    & $INSTALL_NODE $NPM_CLI install --prefix "$CORE_DIR" --registry=$MIRROR 2>&1 | Select-Object -Last 5
+    if ($LASTEXITCODE -ne 0) {
+        Write-Red "  ✗ OpenClaw 安装失败，请检查网络"
+        exit 1
+    }
     Write-Green "  ✓ OpenClaw 安装完成"
 }
 
@@ -197,12 +214,9 @@ if (Test-Path "$CORE_DIR\node_modules\@sliverp\qqbot") {
 } else {
     Write-Cyan "  ↓ 安装 QQ 插件..."
     try {
-        Push-Location $CORE_DIR
-        & $INSTALL_NPM install "@sliverp/qqbot@latest" --registry=$MIRROR 2>&1 | Out-Null
-        Pop-Location
+        & $INSTALL_NODE $NPM_CLI install "@sliverp/qqbot@latest" --prefix "$CORE_DIR" --registry=$MIRROR 2>&1 | Out-Null
         Write-Green "  ✓ QQ 插件安装完成"
     } catch {
-        Pop-Location
         Write-Yellow "  ⚠ QQ 插件安装失败（不影响主功能）"
     }
 }
@@ -421,7 +435,7 @@ foreach ($skillName in $skills.Keys) {
     $skillDir = "$SKILLS_TARGET\$skillName"
     if (-not (Test-Path $skillDir)) {
         New-Item -ItemType Directory -Force -Path $skillDir | Out-Null
-        $skills[$skillName] | Out-File -Encoding utf8 "$skillDir\SKILL.md"
+        [IO.File]::WriteAllText("$skillDir\SKILL.md", $skills[$skillName], (New-Object System.Text.UTF8Encoding $false))
         $skillCount++
     }
 }
@@ -523,7 +537,7 @@ if ($hasConfig) {
 "@
     }
 
-    $configJson | Out-File -Encoding utf8 $CONFIG_PATH
+    [IO.File]::WriteAllText($CONFIG_PATH, $configJson, (New-Object System.Text.UTF8Encoding $false))
     Write-Green "  ✓ 模型配置完成: $($cfg.model)"
 }
 
