@@ -16,14 +16,15 @@ U 盘 = 插上就能用
 
 The repo is NOT a "build tool" or "generator" — it IS the USB structure. `setup.sh` only fills in large deps that can't go in git. After `setup.sh`, the `portable/` folder is directly copyable to a USB drive.
 
-Two distribution forms:
-1. **Portable USB** (`portable/`): Run from USB, zero install. The repo structure maps 1:1 to USB content.
+Three distribution forms:
+1. **Portable USB** (`portable/`): Run from USB on existing Mac/Windows, zero install.
 2. **Electron desktop app** (`u-claw-app/`): Install-to-computer version, packaged as DMG/EXE.
+3. **Bootable Linux USB** (`bootable/`): Ventoy + Ubuntu 24.04 — boots any x86_64 PC from USB, no OS needed.
 
-## Development Setup
+## Development Commands
 
 ```bash
-# Portable version — after this, portable/ IS the USB content
+# Portable version — build dev copy
 cd portable && bash setup.sh    # Downloads Node.js v22 + OpenClaw + QQ plugin to app/
 bash Mac-Start.command          # Launch (Mac ARM64 only currently)
 
@@ -35,9 +36,16 @@ cd u-claw-app && bash setup.sh  # One-click: Node.js + Electron + deps (China mi
 npm run dev                     # Dev mode
 npm run build:mac-arm64         # Build Mac ARM64 DMG
 npm run build:win               # Build Windows NSIS + portable
+
+# Bootable Linux USB (run on Windows PowerShell as Admin)
+cd bootable
+.\1-prepare-usb.ps1             # Write Ventoy to USB (formats drive!)
+.\2-download-iso.ps1            # Download Ubuntu ISO (~5.8GB, China mirrors)
+.\3-create-persistence.ps1      # Create 20GB ext4 persistence image
+.\4-copy-to-usb.ps1             # Copy ISO + persistence + scripts to USB
 ```
 
-Testing should be done in a separate clone at `~/uclaw-dev/u-claw/`, or directly on USB. This dev repo stays clean (no node_modules, no app/ runtime).
+Testing should be done in a separate folder or directly on USB. This repo stays clean (no node_modules, no app/ runtime).
 
 ## Architecture
 
@@ -47,11 +55,18 @@ portable/           THE USB content (= repo + setup.sh downloads)
                     app/core/ (OpenClaw) + app/runtime/ (Node.js) — downloaded by setup.sh
                     data/.openclaw/openclaw.json — user config (on USB, portable)
                     Mac-Install.command / Windows-Install.bat — install to computer from USB
+                    skills-cn/ — 10 个中国本地化技能（小红书、微博、B站等）
 
 u-claw-app/         Electron desktop app (main.js ~400 lines)
                     setup.sh / setup.bat for one-click dev environment
                     Bundles Node.js in resources/runtime/node-{platform}-{arch}
                     Config stored in app.getPath('userData')/.openclaw/
+
+bootable/           Linux 可启动 U 盘模块（完全独立，不依赖其他模块）
+                    4 步 PowerShell 脚本 (Windows 上制作)
+                    Ventoy 1.0.99 + Ubuntu 24.04 LTS + casper-rw 持久化
+                    linux-setup/ — setup-openclaw.sh 安装到 /opt/u-claw/
+                    独立仓库镜像: github.com/dongsheng123132/u-claw-linux
 
 website/            Static HTML deployed to u-claw.org via Vercel
                     vercel.json sets outputDirectory: "website"
@@ -90,4 +105,14 @@ Release artifacts go to GitHub Releases, not the repo.
 - Mac Apple Silicon (ARM64): ✅ Working
 - Mac Intel (x64): ✅ Working（portable 需先运行 setup.sh 下载 node-mac-x64）
 - Windows x64: 🚧 In development
-- Linux (Bootable USB): ✅ Separate repo → [u-claw-linux](https://github.com/dongsheng123132/u-claw-linux)
+- Linux x64 (Bootable USB): ✅ `bootable/` 目录 + 独立仓库 [u-claw-linux](https://github.com/dongsheng123132/u-claw-linux)
+
+## Bootable Linux Key Details
+
+- **制作环境**: Windows 10/11 + PowerShell (Admin)，4 步脚本
+- **U 盘要求**: 32GB+ USB 3.0
+- **技术栈**: Ventoy 1.0.99 引导 → Ubuntu 24.04 ISO → casper-rw 持久化 → OpenClaw 安装到 /opt/u-claw/
+- **国内镜像**: ISO 下载走清华/阿里/中科大，Node.js 和 npm 走 npmmirror.com
+- **Linux 环境变量**: `OPENCLAW_HOME=/opt/u-claw/data/.openclaw`
+- **bootable/ 完全独立**: 不引用 portable/、u-claw-app/、website/ 的任何文件，修改互不影响
+- **同步**: bootable/ 内容与 u-claw-linux 仓库保持一致，改一边要记得同步另一边
