@@ -1838,7 +1838,9 @@ docker compose up -d</code></pre>
 <h4>Mac / Linux</h4>
 <pre><code>curl -fsSL https://u-claw.org/remote.sh | bash</code></pre>
 
-<p style="color:var(--dim);margin-top:12px">运行后屏幕会显示端口号和用户名，把这些信息发给技术支持即可。<br>关闭窗口自动断开连接，完全可控。</p>
+<p style="color:var(--dim);margin-top:12px">运行后屏幕会显示端口号、用户名和局域网 IP，把这些信息发给技术支持即可。<br>关闭窗口自动断开连接，2 小时后自动超时，完全可控。</p>
+
+<p style="margin-top:12px"><strong>💡 同一 WiFi？</strong> 脚本会自动检测局域网 IP，技术支持可直连你的电脑，速度更快、无需中转。</p>
 </div>
 
 <div class="card" style="border-color:var(--cyan)">
@@ -1864,10 +1866,13 @@ docker compose up -d</code></pre>
 <div class="tip">
 <strong>你的安全有保障：</strong>
 <ul style="margin-top:8px">
-<li>远程连接通过加密通道（SSH + Token 认证），数据不会被第三方截获</li>
+<li>运行前会明确提示脚本将做什么，需要你确认（y/N）才会继续</li>
+<li>远程连接通过加密通道（SSH + FRP Token 认证），数据不会被第三方截获</li>
 <li>连接需要你主动运行命令才会开启，关闭窗口立即断开</li>
-<li>技术支持只能在你授权的范围内操作，无法在你不知情的情况下访问</li>
-<li>所有操作透明可见，你可以随时关闭窗口终止连接</li>
+<li><strong>2 小时自动超时</strong>，忘了关也不会一直暴露</li>
+<li>脚本会验证 SSH 是否真正启动，失败会提示你手动操作</li>
+<li>所有操作透明可见，你可以随时 Ctrl+C 或关闭窗口终止连接</li>
+<li>断开时自动清理配置文件，不留残余</li>
 </ul>
 </div>
 
