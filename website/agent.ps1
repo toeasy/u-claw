@@ -11,7 +11,7 @@ $RELAY_SERVER = "ws://47.107.130.152:8900"
 $DOWNLOAD_URL = "https://u-claw.org/downloads/agent.exe"
 $AGENT_DIR = "$env:TEMP\uclaw"
 $AGENT_PATH = "$AGENT_DIR\agent.exe"
-$TOKEN = "remote-agent-secret"
+$TOKEN = "uclaw-agent-pub"
 $TIMEOUT_HOURS = 2
 
 Clear-Host
